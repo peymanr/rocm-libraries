@@ -38,7 +38,7 @@ LayernormFwdParams::LayernormFwdParams(
     , _invVariance(attributes.inv_variance_tensor_uid().has_value()
                        ? tensorMap.at(attributes.inv_variance_tensor_uid().value())
                        : nullptr)
-    , _epsilon((tensorMap.at(attributes.epsilon_tensor_uid())))
+    , _epsilon(tensorMap.at(attributes.epsilon_tensor_uid()))
 {
 }
 
