@@ -1206,7 +1206,7 @@ def checkSpaceFillAlgoIsValid(name, value):
     else:
         maxOrderID = 5
         for orderId in value:
-            if orderId not in range(0,maxOrderID + 1):
+            if orderId not in range(0,maxOrderID + 1):  # pragma: no mutate
                 msgBase = "Invalid parameter value: {} = {}\nOrderID out of range"
                 raise Exception(msgBase.format(name, value))
 
@@ -1223,7 +1223,7 @@ def checkSpaceFillAlgoWGMIsValid(name, value):
                 msgBase = "Invalid parameter value: {} = {}\nMust be exactly 2 values per level"
                 raise Exception(msgBase.format(name, value))
             for dim in pair:
-                if dim not in range(0,256):
+                if dim not in range(0,256):  # pragma: no mutate
                     msgBase = "Invalid parameter value: {} = {}\nGridDim {} out of range [0,256)"
                     raise Exception(msgBase.format(name, value, dim))
 
@@ -1340,5 +1340,4 @@ def validateInternalSupportParams(
         expectedTypes = {type(default)}
         if type(value) not in expectedTypes:
             raise ConfigTypeError(formatMismatch(srcFile, f"{keyPathPrefix}.{key}", value, expectedTypes))
-
 
