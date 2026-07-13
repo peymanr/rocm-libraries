@@ -76,6 +76,36 @@ class CFGBuilderPassImpl : public Pass {
         return false;
     }
 
+    std::unordered_set<std::string> collectReservedBlockLabels(
+        Function& func, const std::vector<BasicBlock::iterator>& splitPositions) {
+        std::unordered_set<std::string> labels;
+        for (BasicBlock& bb : func) {
+            if (!bb.getLabel().empty()) labels.insert(bb.getLabel());
+        }
+
+        for (auto splitPos : splitPositions) {
+            StinkyInstruction* inst = dyn_cast<StinkyInstruction>(splitPos.getNodePtr());
+            if (!inst || inst->getUnifiedOpcode() != GFX::LABEL) continue;
+
+            auto labelData = inst->getModifier<LabelData>();
+            if (labelData && !labelData->label.empty()) labels.insert(labelData->label);
+        }
+        return labels;
+    }
+
+    std::string makeSyntheticFallthroughLabel(const std::string& labelName,
+                                              std::unordered_set<std::string>& reservedLabels) {
+        const std::string base = labelName.empty() ? "bb.fallthrough" : labelName + ".fallthrough";
+
+        std::string candidate = base;
+        for (int suffix = 1; reservedLabels.contains(candidate); ++suffix) {
+            candidate = base + "." + std::to_string(suffix);
+        }
+
+        reservedLabels.insert(candidate);
+        return candidate;
+    }
+
     void splitAtLabels(Function& func, BasicBlock* flatBB) {
         // Find all label positions
         std::vector<BasicBlock::iterator> splitPositions;
@@ -104,27 +134,29 @@ class CFGBuilderPassImpl : public Pass {
 
         assert(!splitPositions.empty() && "No labels found? This should not happen.");
 
+        std::unordered_set<std::string> reservedLabels =
+            collectReservedBlockLabels(func, splitPositions);
+
         // For each label, create a new BasicBlock
         std::string labelName = flatBB->getLabel();
-        int count = 0;
         for (size_t i = 0; i < splitPositions.size(); ++i) {
             auto splitPos = splitPositions[i];
             if (splitPos == flatBB->end()) {
                 continue;
             }
             StinkyInstruction* inst = cast<StinkyInstruction>(splitPos.getNodePtr());
+            std::string blockLabel;
             if (inst->getUnifiedOpcode() == GFX::LABEL) {
                 // Get the label name
                 auto labelData = inst->getModifier<LabelData>();
                 labelName = labelData ? labelData->label : "";
-                count = 0;
+                blockLabel = labelName;
             } else {
-                labelName += "_";
-                labelName += std::to_string(++count);
+                blockLabel = makeSyntheticFallthroughLabel(labelName, reservedLabels);
             }
 
             // Create a new BasicBlock for this label
-            BasicBlock* newBB = func.createBasicBlock(labelName);
+            BasicBlock* newBB = func.createBasicBlock(blockLabel);
 
             // Determine the range of IR to move
             auto startIt = splitPos;
