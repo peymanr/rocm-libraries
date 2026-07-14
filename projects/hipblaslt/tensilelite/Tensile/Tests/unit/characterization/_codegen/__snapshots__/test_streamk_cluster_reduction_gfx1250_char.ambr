@@ -1,0 +1,37 @@
+# serializer version: 1
+# name: test_streamk_cluster_reduction_gfx1250_golden
+  list([
+    dict({
+      'basename': 'Cijk_Alik_Bljk_F8SS_MXAE8B32_MXBE8B32_BH_UserArgGOQZYoeo_j2WULZyowpXP4qRjvXk778uRGn9aTp-fSg=',
+      'err': 0,
+    }),
+    dict({
+      'basename': 'Cijk_Alik_Bljk_F8SS_MXAE8B32_MXBE8B32_BH_UserArgdpiOq09GXum32panL4cDOYyu_n6uCdF4rZF-PCphYmc=',
+      'err': 0,
+    }),
+    dict({
+      'basename': 'Cijk_Alik_Bljk_F8SS_MXAE8B32_MXBE8B32_BH_UserArgkwiy1NXbcqYr1ppUoJQlkmGJPID3UkfMB4484vTza94=',
+      'err': 0,
+    }),
+    dict({
+      'basename': 'Cijk_Alik_Bljk_F8SS_MXAE8B32_MXBE8B32_BH_UserArgpZdSBC1NrTvW4M5Fsz9Ub9f33_rUAfETj3wf3pnQUic=',
+      'err': 0,
+    }),
+    dict({
+      'basename': 'Cijk_Alik_Bljk_F8SS_MXAE8B32_MXBE8B32_BH_UserArgrRvyhaPnGNIfqelrWbKoTKmSPI5LdX_mn5F5vGdeRMU=',
+      'err': 0,
+    }),
+    dict({
+      'basename': 'Cijk_Alik_Bljk_F8SS_MXAE8B32_MXBE8B32_BH_UserArgrahDugJLM8z_UYAHR74JXW6ga7fAPvtovLMlXhVw_7I=',
+      'err': 0,
+    }),
+    dict({
+      'basename': 'Cijk_Alik_Bljk_F8SS_MXAE8B32_MXBE8B32_BH_UserArguxgi0KID2-WwcyHjF2555UQnp7OBWA4NuAKuUiF5rJI=',
+      'err': 0,
+    }),
+    dict({
+      'basename': 'Cijk_Alik_Bljk_F8SS_MXAE8B32_MXBE8B32_BH_UserArgvA5YLPRu3zrfoDlMQwrBrNdGpvuZktjlIcv9ZB5ugv0=',
+      'err': 0,
+    }),
+  ])
+# ---
