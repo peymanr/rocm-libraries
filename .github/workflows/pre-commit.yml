@@ -32,7 +32,7 @@ jobs:
       # when the branch originates elsewhere. PRs use their actual base ref.
       NULL_REF: 0000000000000000000000000000000000
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           # Blobless partial clone; the sparse-checkout below materializes only
           # the projects touched by the diff instead of the full ~9 GB tree.
@@ -70,7 +70,7 @@ jobs:
             | awk -F/ 'NF==2{print $1} NF>=3{print $1"/"$2}' | sort -u)
           git sparse-checkout set --cone "${DIRS[@]}"
 
-      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
 
       - name: Detect project changes
         id: changes
