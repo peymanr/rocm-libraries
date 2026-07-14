@@ -39,13 +39,13 @@ is derived from whether the shape is decode).
 
 Known issues / runtime notes
 ----------------------------
-* **head_size=256 is OFF BY DEFAULT** (the ``d256_disabled`` group in
-  ``shapes.json``). There is currently no tiled d256 path on gfx942, so the
-  dispatcher falls back to the scalar kernel, which performs very poorly here:
-  ~500-4000x slower than flash, failing the correctness tolerance on some
-  shapes, and slow enough at S2048 to stall graph capture (looks like a hang).
-  A proper tiled d256 implementation is needed; re-run with
-  ``--groups d256_disabled`` to revisit it.
+* **head_size=256 now has a tiled path on gfx942** -- PR #9310 added the 4-warp
+  GQA kernel (``build_gfx942_4warp_gqa``, routed via the ``_d256_gfx942_fast``
+  cohort). ``supports_native_unified_attention_tiled`` admits D256 bf16 and
+  ``backend="auto"`` selects it, at ~parity with AITER ``unified_attention``
+  (Sq4096/Sq8192, GQA 16/2, paged). Benchmark it with
+  ``benchmark_prefill2d_live.py --shapes d256_gfx942_prefill_shapes.json``. The
+  legacy ``d256_disabled`` group in ``shapes.json`` predates that tiled path.
 * **Flash-ineligible shapes fall back to Torch's default SDP backend** (rows
   marked ``backend = default``) -- notably non-square causal shapes
   (``seqlen_q != seqlen_k``) and d256, which the flash backend does not accept
