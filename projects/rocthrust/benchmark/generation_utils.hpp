@@ -1,6 +1,6 @@
 // MIT License
 //
-// Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,11 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef ROCTHRUST_BENCHMARKS_BENCH_UTILS_GENERATION_UTILS_HPP_
-#define ROCTHRUST_BENCHMARKS_BENCH_UTILS_GENERATION_UTILS_HPP_
-
-// Utils
-#include "common/types.hpp"
+#pragma once
 
 // Thrust
 #include <thrust/detail/config.h>
@@ -46,14 +42,8 @@
 #include <thrust/sequence.h>
 #include <thrust/tuple.h>
 
-// rocPRIM
-#include <rocprim/rocprim.hpp>
-
 // rocRAND
 #include <rocrand/rocrand.h>
-
-// Google Benchmark
-#include <benchmark/benchmark.h>
 
 // STL
 #include <algorithm>
@@ -79,7 +69,7 @@ namespace bench_utils
 class managed_seed
 {
 public:
-  /// \param[in] seed_string Either "random" to get random seeds,
+  /// \param[in] seed Either "random" to get random seeds,
   ///   or an unsigned integer to get (a sequence) of deterministic seeds.
   managed_seed(const std::string& seed_string)
   {
@@ -90,6 +80,15 @@ public:
       std::seed_seq seq{seed};
       seq.generate(seeds.begin(), seeds.end());
     }
+  }
+
+  /// \param[in] seed A deterministic numeric seed. Expanded into a sequence of
+  ///   seeds the same way a numeric seed string is.
+  managed_seed(unsigned int seed)
+  {
+    is_random = false;
+    std::seed_seq seq{seed};
+    seq.generate(seeds.begin(), seeds.end());
   }
 
   managed_seed()
@@ -135,7 +134,7 @@ float get_entropy_percentage(int entropy_reduction)
 }
 
 template <typename T>
-T value_from_entropy(float64_t percentage)
+T value_from_entropy(double percentage)
 {
   if (percentage == 100.0)
   {
@@ -193,7 +192,7 @@ struct random_to_item_t<T, typename std::enable_if<std::is_floating_point<T>::va
 template <typename T>
 struct random_to_item_t<T, typename std::enable_if<!std::is_floating_point<T>::value>::type>
 {
-#if THRUST_BENCHMARKS_HAVE_INT128_SUPPORT
+#ifndef _MSC_VER
   using CastT =
     typename std::conditional<std::is_same<T, int128_t>::value || std::is_same<T, uint128_t>::value,
                               typename std::conditional<std::is_signed<T>::value, long, unsigned long>::type,
@@ -284,18 +283,19 @@ public:
 struct device_generator_base_t
 {
   const std::size_t elements{0};
-  const std::string seed_type{"random"};
+  const managed_seed seed_source{};
   seed_t seed{};
   const int entropy_reduction{0 /*bit_entropy::_1_000*/};
 
-  device_generator_base_t(std::size_t m_elements, const std::string& m_seed_type, int m_entropy_reduction)
+  // `m_seed_source` accepts either a numeric seed (e.g. primbench's state.seed)
+  // or a seed string ("random" or a numeric string) via implicit conversion.
+  device_generator_base_t(std::size_t m_elements, const managed_seed& m_seed_source, int m_entropy_reduction)
       : elements(m_elements)
-      , seed_type(m_seed_type)
+      , seed_source(m_seed_source)
       , entropy_reduction(m_entropy_reduction)
   {
     ROCRAND_CHECK(rocrand_create_generator(&gen, ROCRAND_RNG_PSEUDO_DEFAULT));
-    const managed_seed managed_seed{seed_type};
-    seed = seed_t{managed_seed.get_0()};
+    seed = seed_t{seed_source.get_0()};
   }
 
   ~device_generator_base_t()
@@ -393,8 +393,8 @@ struct device_vector_generator_t : device_generator_base_t
   const T max{std::numeric_limits<T>::max()};
 
   device_vector_generator_t(
-    std::size_t m_elements, const std::string& m_seed_type, int m_entropy_reduction, T m_min, T m_max)
-      : device_generator_base_t(m_elements, m_seed_type, m_entropy_reduction)
+    std::size_t m_elements, const managed_seed& m_seed_source, int m_entropy_reduction, T m_min, T m_max)
+      : device_generator_base_t(m_elements, m_seed_source, m_entropy_reduction)
       , min(m_min)
       , max(m_max)
   {}
@@ -408,8 +408,8 @@ struct device_vector_generator_t : device_generator_base_t
 template <>
 struct device_vector_generator_t<void> : device_generator_base_t
 {
-  device_vector_generator_t(std::size_t m_elements, const std::string& m_seed_type, int m_entropy_reduction)
-      : device_generator_base_t(m_elements, m_seed_type, m_entropy_reduction)
+  device_vector_generator_t(std::size_t m_elements, const managed_seed& m_seed_source, int m_entropy_reduction)
+      : device_generator_base_t(m_elements, m_seed_source, m_entropy_reduction)
   {}
 
   template <typename T>
@@ -421,14 +421,14 @@ struct device_vector_generator_t<void> : device_generator_base_t
 
 template <typename T>
 std::size_t gen_uniform_offsets(
-  const std::string seed_type,
+  const managed_seed& seed_source,
   thrust::device_vector<T>& segment_offsets,
   const std::size_t min_segment_size,
   const std::size_t max_segment_size)
 {
   const T elements = segment_offsets.size() - 2;
 
-  segment_offsets = device_generator_base_t(segment_offsets.size(), seed_type, 0 /*bit_entropy::_1_000*/)
+  segment_offsets = device_generator_base_t(segment_offsets.size(), seed_source, 0 /*bit_entropy::_1_000*/)
                       .generate(static_cast<T>(min_segment_size), static_cast<T>(max_segment_size));
 
   // Find the range of contiguous offsets starting from index 0 which sum is greater or
@@ -574,17 +574,17 @@ void gen_key_segments(thrust::device_vector<T>& keys, thrust::device_vector<size
 struct device_uniform_key_segments_generator_t
 {
   const std::size_t elements{0};
-  const std::string seed_type{"random"};
+  const managed_seed seed_source{};
   const std::size_t min_segment_size{0};
   const std::size_t max_segment_size{0};
 
   device_uniform_key_segments_generator_t(
     std::size_t m_elements,
-    const std::string m_seed_type,
+    const managed_seed& m_seed_source,
     const std::size_t m_min_segment_size,
     const std::size_t m_max_segment_size)
       : elements(m_elements)
-      , seed_type(m_seed_type)
+      , seed_source(m_seed_source)
       , min_segment_size(m_min_segment_size)
       , max_segment_size(m_max_segment_size)
   {}
@@ -596,7 +596,7 @@ struct device_uniform_key_segments_generator_t
 
     thrust::device_vector<std::size_t> segment_offsets(keys.size() + 2);
     const std::size_t offsets_size =
-      gen_uniform_offsets(seed_type, segment_offsets, min_segment_size, max_segment_size);
+      gen_uniform_offsets(seed_source, segment_offsets, min_segment_size, max_segment_size);
     segment_offsets.resize(offsets_size);
 
     gen_key_segments(keys, segment_offsets);
@@ -609,11 +609,11 @@ struct gen_uniform_key_segments_t
 {
   device_uniform_key_segments_generator_t operator()(
     const std::size_t elements,
-    const std::string seed_type,
+    const managed_seed& seed_source,
     const std::size_t min_segment_size,
     const std::size_t max_segment_size) const
   {
-    return {elements, seed_type, min_segment_size, max_segment_size};
+    return {elements, seed_source, min_segment_size, max_segment_size};
   }
 };
 
@@ -627,18 +627,18 @@ struct gen_t
   template <class T>
   device_vector_generator_t<T> operator()(
     std::size_t elements,
-    const std::string seed_type,
+    const managed_seed& seed_source,
     const int entropy = 0 /*100*/,
     T min             = std::numeric_limits<T>::min,
     T max             = std::numeric_limits<T>::max()) const
   {
-    return {elements, seed_type, entropy, min, max};
+    return {elements, seed_source, entropy, min, max};
   }
 
   device_vector_generator_t<void>
-  operator()(std::size_t elements, const std::string seed_type, const int entropy = 0 /*100*/) const
+  operator()(std::size_t elements, const managed_seed& seed_source, const int entropy = 0 /*100*/) const
   {
-    return {elements, seed_type, entropy};
+    return {elements, seed_source, entropy};
   }
 
   gen_uniform_t uniform{};
@@ -648,4 +648,3 @@ struct gen_t
 detail::gen_t generate;
 
 } // namespace bench_utils
-#endif // ROCTHRUST_BENCHMARKS_BENCH_UTILS_GENERATION_UTILS_HPP_
