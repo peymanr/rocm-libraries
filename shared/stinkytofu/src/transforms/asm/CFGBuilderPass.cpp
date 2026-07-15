@@ -77,11 +77,9 @@ class CFGBuilderPassImpl : public Pass {
     }
 
     std::unordered_set<std::string> collectReservedBlockLabels(
-        Function& func, const std::vector<BasicBlock::iterator>& splitPositions) {
+        BasicBlock& flatBB, const std::vector<BasicBlock::iterator>& splitPositions) {
         std::unordered_set<std::string> labels;
-        for (BasicBlock& bb : func) {
-            if (!bb.getLabel().empty()) labels.insert(bb.getLabel());
-        }
+        if (!flatBB.getLabel().empty()) labels.insert(flatBB.getLabel());
 
         for (auto splitPos : splitPositions) {
             StinkyInstruction* inst = dyn_cast<StinkyInstruction>(splitPos.getNodePtr());
@@ -135,7 +133,7 @@ class CFGBuilderPassImpl : public Pass {
         assert(!splitPositions.empty() && "No labels found? This should not happen.");
 
         std::unordered_set<std::string> reservedLabels =
-            collectReservedBlockLabels(func, splitPositions);
+            collectReservedBlockLabels(*flatBB, splitPositions);
 
         // For each label, create a new BasicBlock
         std::string labelName = flatBB->getLabel();
@@ -149,7 +147,9 @@ class CFGBuilderPassImpl : public Pass {
             if (inst->getUnifiedOpcode() == GFX::LABEL) {
                 // Get the label name
                 auto labelData = inst->getModifier<LabelData>();
-                labelName = labelData ? labelData->label : "";
+                assert(labelData != nullptr && !labelData->label.empty() &&
+                       "LABEL must carry non-empty LabelData");
+                labelName = labelData->label;
                 blockLabel = labelName;
             } else {
                 blockLabel = makeSyntheticFallthroughLabel(labelName, reservedLabels);
