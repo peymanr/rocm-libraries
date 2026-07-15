@@ -57,10 +57,8 @@ static const CounterPolicy& defaultCounterPolicy(CounterKind c) {
         // CK_DS: ds_read / ds_write / ds_atomic; every consumer drains.
         {[](const StinkyInstruction& i) { return isDSRead(i) || isDSWrite(i) || isDSAtomic(i); },
          [](const StinkyInstruction&) { return true; }},
-        // CK_Buffer: vector global/buffer load+store; every consumer drains.
-        {[](const StinkyInstruction& i) {
-             return isBufferMemLoad(i) || isBufferMemStore(i) || isGLOBALAtomic(i);
-         },
+        // CK_Buffer: vector global/buffer loads; every consumer drains.
+        {[](const StinkyInstruction& i) { return isBufferMemLoad(i) || isGLOBALAtomic(i); },
          [](const StinkyInstruction&) { return true; }},
         // CK_KM: SMRD scalar loads (s_load_*); every consumer drains.
         {[](const StinkyInstruction& i) { return isSMemLoad(i); },
@@ -349,7 +347,7 @@ const char* counterName(CounterKind c) {
         case CK_DS:
             return "ds (dscnt)";
         case CK_Buffer:
-            return "buffer (loadcnt/storecnt)";
+            return "buffer load (loadcnt)";
         case CK_KM:
             return "scalar (kmcnt)";
         case CK_Tensor:
