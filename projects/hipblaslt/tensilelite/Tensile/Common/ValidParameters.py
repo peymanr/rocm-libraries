@@ -837,6 +837,21 @@ validParameters = { # we need to make sure this matches develop
     # 0: use the existing global-flag reduction
     # 1: enable the cluster-barrier reduction fast path
     "StreamKClusterReduction": [0, 1],
+    # Enables the gfx1250 StreamK data-parallel (DP) cooperative cluster loads
+    # (TDM B-multicast). Consecutive-WG [C,1] clusters process M-adjacent DP
+    # tiles that share the same B (N-block) over the full K range, so the B
+    # tile is loaded once and multicast to all C workgroups in the cluster.
+    # Mutually exclusive with StreamKClusterReduction (a [C,1] cluster cannot
+    # denote both K-split fixup peers and spatial DP peers at once). Requires
+    # StreamK == 3, ClusterDim == [C,1] with C a power of two in 2..16, gfx1250
+    # HasTDM / TDMInst != 0, StreamKXCCMapping != 3, and NOT StreamKAtomic.
+    # The cooperative mask is only applied at runtime when the cluster is fully
+    # populated and its tiles are M-adjacent (clusterMulticastValid); otherwise
+    # every workgroup loads B normally, so results are correct for all sizes.
+    # See docs/design/cluster-load-component-and-streamk-multicast.md.
+    # 0: normal per-workgroup B loads
+    # 1: enable DP cooperative B-multicast loads
+    "StreamKMulticast": [0, 1],
     # Debug settings for stream-k kernels to disable parts of the kernel
     #   Bit 0: Don't generate fixup code
     #   Bit 1: Don't generate write to partials code
