@@ -46,7 +46,7 @@
 #define M1 42
 
 template <typename T>
-inline bool check_valid(const size_t size)
+inline bool is_valid(const size_t size)
 {
   try
   {
@@ -133,7 +133,7 @@ private:
 #define QUEUE(T)                                        \
   for (size_t size : bench_utils::sizes(2 * sizeof(T))) \
   {                                                     \
-    if (!check_valid<T>(size))                          \
+    if (!is_valid<T>(size))                             \
       continue;                                         \
     executor.queue<transform_benchmark<T>>(size);       \
   }
@@ -296,7 +296,7 @@ private:
 
 #define QUEUE_BABEL_OP(T, S, OpT)                                        \
   {                                                                      \
-    if (check_valid<T>(S))                                               \
+    if (is_valid<T>(S))                                                  \
       executor.queue<transform_babel_benchmark<T, babelstream::OpT>>(S); \
   }
 

@@ -33,7 +33,7 @@
 #include "bench_utils.hpp"
 
 template <typename T, typename K>
-inline bool check_valid(const size_t size, const size_t maxi)
+inline bool is_valid(const size_t size, const size_t maxi)
 {
   try
   {
@@ -119,7 +119,7 @@ private:
 #define QUEUE_KEY(K, T, M)                                            \
   for (size_t size : bench_utils::sizes(2 * (sizeof(T) + sizeof(K)))) \
   {                                                                   \
-    if (check_valid<T, K>(size, M))                                   \
+    if (is_valid<T, K>(size, M))                                      \
       executor.queue<unique_benchmark<T, K>>(size, M);                \
   }
 
@@ -159,7 +159,7 @@ int main(int argc, char* argv[])
   settings.batch_window_size    = 3;
   primbench::executor executor(argc, argv, settings, primbench::flags::sync);
 
-  constexpr size_t max_segment_sizes[] = {1, 4, 8};
+  constexpr size_t max_segment_sizes[] = {1, 8};
 
   for (size_t m : max_segment_sizes)
   {
