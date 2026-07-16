@@ -58,7 +58,9 @@ static const CounterPolicy& defaultCounterPolicy(CounterKind c) {
         {[](const StinkyInstruction& i) { return isDSRead(i) || isDSWrite(i) || isDSAtomic(i); },
          [](const StinkyInstruction&) { return true; }},
         // CK_Buffer: vector global/buffer load+store; every consumer drains.
-        {[](const StinkyInstruction& i) { return isBufferMemLoad(i) || isBufferMemStore(i); },
+        {[](const StinkyInstruction& i) {
+             return isBufferMemLoad(i) || isBufferMemStore(i) || isGLOBALAtomic(i);
+         },
          [](const StinkyInstruction&) { return true; }},
         // CK_KM: SMRD scalar loads (s_load_*); every consumer drains.
         {[](const StinkyInstruction& i) { return isSMemLoad(i); },
